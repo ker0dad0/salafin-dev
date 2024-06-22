@@ -3,7 +3,6 @@ import openai
 import sqlite3
 import numpy as np
 from sentence_transformers import SentenceTransformer
-import torch
 
 # Configurer votre clé OpenAI
 openai.api_key = st.secrets["OPENAI_API_KEY"]
@@ -27,7 +26,7 @@ def decode_vector(vector_blob):
 # Fonction principale pour interagir avec l'utilisateur et récupérer les données appropriées
 def chatbot_main(question):
     # Vectorisation de la question de l'utilisateur
-    question_vector = model.encode(question, convert_to_tensor=True)
+    question_vector = model.encode(question)
 
     # Connexion à la base de données et récupération des données
     rows = get_data_from_db()
@@ -38,7 +37,8 @@ def chatbot_main(question):
     # Recherche de la meilleure réponse
     for row_id, text, vector_blob in rows:
         vector = decode_vector(vector_blob)
-        similarity = float(torch.cosine_similarity(question_vector, torch.tensor(vector), dim=0))
+        # Calcul de la similarité cosinus avec NumPy
+        similarity = np.dot(question_vector, vector) / (np.linalg.norm(question_vector) * np.linalg.norm(vector))
         if similarity > best_similarity:
             best_similarity = similarity
             best_match = (row_id, text)
